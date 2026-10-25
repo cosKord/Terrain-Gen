@@ -1,11 +1,17 @@
 #include "TerrainRenderer.h"
 #include "BiomeColor.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
+#include <stdexcept>
 #include <utility>
 
 using namespace std;
+
+
+// i dont rlly know what this does, Raylib i havent done yet (like full AI)
 
 TerrainRenderer::~TerrainRenderer() { unload(); }
 
@@ -31,21 +37,36 @@ TerrainRenderer &TerrainRenderer::operator=(TerrainRenderer &&other) noexcept {
 
 void TerrainRenderer::unload() {
   if (m_loaded) {
-    UnloadModel(m_model); // UnloadModel also unloads meshes
+    UnloadModel(m_model);
     m_loaded = false;
     memset(&m_mesh, 0, sizeof(Mesh));
     memset(&m_model, 0, sizeof(Model));
   }
 }
 
-void TerrainRenderer::buildMesh(const Heightmap &heightmap,
-                                const TerrainConfig &config) {
+void TerrainRenderer::buildMesh(const Heightmap &heightmap, const TerrainConfig &config) {
 
   unload();
 
   int width = heightmap.getWidth();
   int depth = heightmap.getDepth();
-  int vertexCount = width * depth;
+  if (width < 2 || depth < 2) {
+    throw invalid_argument("Terrain dimensions must be at least 2x2");
+  }
+  if (config.gridSpacing <= 0.0f) {
+    throw invalid_argument("Terrain grid spacing must be positive");
+  }
+
+  const size_t vertexCountValue =
+      static_cast<size_t>(width) * static_cast<size_t>(depth);
+  constexpr size_t maxIndexedVertices =
+      static_cast<size_t>(numeric_limits<unsigned short>::max()) + 1;
+  if (vertexCountValue > maxIndexedVertices) {
+    throw invalid_argument(
+        "Terrain exceeds the 65,536-vertex limit of the 16-bit index buffer");
+  }
+
+  int vertexCount = static_cast<int>(vertexCountValue);
   int triangleCount = (width - 1) * (depth - 1) * 2;
 
   // --- Allocate Mesh ---
@@ -73,17 +94,23 @@ void TerrainRenderer::buildMesh(const Heightmap &heightmap,
   }
 
   // --- Compute Normals via Finite Differences ---
-  // N = normalize( h(x-1,z) - h(x+1,z), 2*gridSpacing, h(x,z-1) - h(x,z+1) )
   for (int z = 0; z < depth; ++z) {
     for (int x = 0; x < width; ++x) {
-      float hL = heightmap.getHeight(x - 1, z);
-      float hR = heightmap.getHeight(x + 1, z);
-      float hD = heightmap.getHeight(x, z - 1);
-      float hU = heightmap.getHeight(x, z + 1);
+      int x0 = max(x - 1, 0);
+      int x1 = min(x + 1, width - 1);
+      int z0 = max(z - 1, 0);
+      int z1 = min(z + 1, depth - 1);
 
-      float nx = hL - hR;
-      float ny = 2.0f * config.gridSpacing;
-      float nz = hD - hU;
+      float heightDeltaX =
+          heightmap.getHeight(x1, z) - heightmap.getHeight(x0, z);
+      float heightDeltaZ =
+          heightmap.getHeight(x, z1) - heightmap.getHeight(x, z0);
+      float distanceX = static_cast<float>(x1 - x0) * config.gridSpacing;
+      float distanceZ = static_cast<float>(z1 - z0) * config.gridSpacing;
+
+      float nx = -heightDeltaX / distanceX;
+      float ny = 1.0f;
+      float nz = -heightDeltaZ / distanceZ;
 
       // Normalize
       float len = sqrt(nx * nx + ny * ny + nz * nz);

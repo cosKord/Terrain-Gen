@@ -39,5 +39,5 @@ vendor/    FastNoiseLite.h
 2. Build an indexed mesh with two triangles per grid cell.
 3. Compute normals, then pick colors from height and slope.
 4. Upload the mesh to the GPU and render.
-```
+
 Author notes: This is basically a for-fun project, to better my understanding of C++ (in scaffold phase for now). Any suggestions are welcome!

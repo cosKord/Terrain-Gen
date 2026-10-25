@@ -4,13 +4,11 @@
 
 using namespace std;
 
-/// Smoothstep interpolation for smooth biome transitions.
 static float smoothstep(float edge0, float edge1, float x) {
   float t = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
   return t * t * (3.0f - 2.0f * t);
 }
 
-/// Linearly interpolate between two colors.
 static Color lerpColor(Color a, Color b, float t) {
   return Color{
       static_cast<unsigned char>(a.r + static_cast<int>((b.r - a.r) * t)),
@@ -20,7 +18,7 @@ static Color lerpColor(Color a, Color b, float t) {
 }
 
 Color getBiomeColor(float height, float normalY, float maxHeight, float seaLevel) {
-  // color
+
   constexpr Color deepWater = {30, 60, 150, 255};
   constexpr Color shallowWater = {50, 120, 200, 255};
   constexpr Color sand = {210, 200, 140, 255};
@@ -28,8 +26,6 @@ Color getBiomeColor(float height, float normalY, float maxHeight, float seaLevel
   constexpr Color darkGrass = {30, 110, 30, 255};
   constexpr Color rock = {130, 120, 110, 255};
   constexpr Color snow = {240, 240, 250, 255};
-
-  float normalizedHeight = height / maxHeight;
 
   if (height < seaLevel * 0.6f) {
     return deepWater;

@@ -12,30 +12,28 @@ void Heightmap::generate(const TerrainConfig &config) {
   m_depth = config.depth;
   m_data.resize(static_cast<size_t>(m_width) * m_depth);
 
-  // Configure noise generator
+  // configure nooise
   FastNoiseLite noise;
   noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
   noise.SetSeed(config.seed);
   noise.SetFrequency(config.baseFrequency);
 
-  // Configure fractal (fBm) parameters
+  // configure fractal params
   noise.SetFractalType(FastNoiseLite::FractalType_FBm);
   noise.SetFractalOctaves(config.octaves);
   noise.SetFractalLacunarity(config.lacunarity);
   noise.SetFractalGain(config.persistence);
 
-  // Sample noise across the grid
+  // This is da sample noise
   for (int z = 0; z < m_depth; ++z) {
     for (int x = 0; x < m_width; ++x) {
-      // Raw noise value in [-1, 1]
+
       float rawNoise =
           noise.GetNoise(static_cast<float>(x), static_cast<float>(z));
 
-      // Normalize to [0, 1]
       float normalized = (rawNoise + 1.0f) * 0.5f;
       normalized = clamp(normalized, 0.0f, 1.0f);
 
-      // Apply redistribution: h_shaped = h^elevationPower * maxHeight
       float shaped =
           pow(normalized, config.elevationPower) * config.maxHeight;
 
